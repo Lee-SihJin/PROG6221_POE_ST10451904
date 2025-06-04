@@ -42,6 +42,49 @@ namespace Chatbot3
             { "frustrated", "Don't worry, {0}—these concepts can be tricky. I'm here to help!" }
         };
 
+        static List<(string Question, string[] Options, string Answer, string Explanation)> quizQuestions = new List<(string, string[], string, string)>
+{
+    ("What should you do if you receive an email asking for your password?",
+        new[] { "A) Reply with your password", "B) Delete the email", "C) Report the email as phishing", "D) Ignore it" }, "C",
+        "Correct! Reporting phishing emails helps prevent scams."),
+
+    ("True or False: It's safe to use the same password for multiple accounts.",
+        new[] { "A) True", "B) False" }, "B",
+        "Correct! Reusing passwords increases your risk if one account is compromised."),
+
+    ("Which of the following is a sign of a phishing attempt?",
+        new[] { "A) Email from a friend", "B) Unexpected attachment", "C) Website with HTTPS", "D) Newsletter subscription" }, "B",
+        "Correct! Unexpected attachments can carry malware."),
+
+    ("What's the best way to create a strong password?",
+        new[] { "A) Use your birthday", "B) Use 'password123'", "C) Use a mix of letters, numbers, and symbols", "D) Use your pet’s name" }, "C",
+        "Correct! Strong passwords use a mix of characters and are hard to guess."),
+
+    ("True or False: Public Wi-Fi is always safe to use for online banking.",
+        new[] { "A) True", "B) False" }, "B",
+        "Correct! Public Wi-Fi is not secure for sensitive activities."),
+
+    ("Which of the following protects your device from viruses?",
+        new[] { "A) Using a VPN", "B) Antivirus software", "C) Closing unused apps", "D) Bright screen" }, "B",
+        "Correct! Antivirus software helps detect and remove threats."),
+
+    ("What is two-factor authentication (2FA)?",
+        new[] { "A) A second email", "B) A password reset", "C) A verification step after your password", "D) Using two passwords" }, "C",
+        "Correct! 2FA adds an extra step for more secure logins."),
+
+    ("True or False: It's okay to click on any link sent by your friend.",
+        new[] { "A) True", "B) False" }, "B",
+        "Correct! Their account could be compromised and used to send malicious links."),
+
+    ("What does HTTPS mean?",
+        new[] { "A) It's a government website", "B) It’s a secure connection", "C) It’s a social media site", "D) It’s a spam site" }, "B",
+        "Correct! HTTPS encrypts the data between you and the website."),
+
+    ("Why should you keep your software updated?",
+        new[] { "A) To make it look nice", "B) To remove files", "C) To fix security bugs", "D) To increase file size" }, "C",
+        "Correct! Updates often include patches for security vulnerabilities.")
+};
+
         static void Main(string[] args)
         {
             SoundPlayer player = new SoundPlayer(@"C:\Users\lab_services_student\Desktop\PROG6221_POE_ST10451904\Chatbot3\08pgn-1x0pn.wav");
@@ -92,7 +135,7 @@ namespace Chatbot3
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                TypeEffect("\nAsk me a question or manage tasks (e.g., add task, view tasks): "+ "\n(Enter <bye>,<exit>,<quit> to exit)");
+                TypeEffect("\nAsk me a question or do the followings..."+"\n manage tasks (e.g., add task, view tasks) " + "\n cybersecurity quiz" + "\n(Enter <bye>,<exit>,<quit> to exit)");
                 string input = Console.ReadLine()?.ToLower();
                 Console.ResetColor();
 
@@ -220,11 +263,67 @@ namespace Chatbot3
                     foundMatch = true;
                 }
 
+                //cybersecurity quiz
+                if (input.Contains("quiz") || input.Contains("cybersecurity quiz"))
+                {
+                    StartCybersecurityQuiz();
+                    foundMatch = true;
+                }
+
+
                 if (!foundMatch)
                 {
                     TypeEffect("I'm not sure I understand. Can you rephrase or ask something about cybersecurity?");
                 }
             }
+
+
+            static void StartCybersecurityQuiz()
+            {
+                int score = 0;
+
+                TypeEffect("\n~~~Let's begin the Cybersecurity Quiz!~~~");
+                Thread.Sleep(500);
+
+                for (int i = 0; i < quizQuestions.Count; i++)
+                {
+                    var (question, options, correctAnswer, explanation) = quizQuestions[i];
+
+                    TypeEffect($"\nQuestion {i + 1}: {question}");
+                    foreach (var option in options)
+                    {
+                        Console.WriteLine(option);
+                    }
+
+                    Console.Write("Your answer (A/B/C/D): ");
+                    string userAnswer = Console.ReadLine()?.Trim().ToUpper();
+
+                    if (userAnswer == correctAnswer)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        TypeEffect("Correct! " + explanation);
+                        score++;
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        TypeEffect($"Incorrect. The correct answer is {correctAnswer}. {explanation}");
+                    }
+                    Console.ResetColor();
+                    Thread.Sleep(500);
+                }
+
+                TypeEffect($"\nYou scored {score} out of {quizQuestions.Count}!");
+
+                if (score >= 8)
+                    TypeEffect("Excellent! You're a cybersecurity pro!");
+                else if (score >= 5)
+                    TypeEffect("Good effort! Keep learning to stay even safer online.");
+                else
+                    TypeEffect("Keep practicing. The more you know, the safer you'll be!");
+            }
+
         }
     }
 }
+//Answer for CybersecurityQuiz (use for quickly test the code) is CBBCBBCBBC.
