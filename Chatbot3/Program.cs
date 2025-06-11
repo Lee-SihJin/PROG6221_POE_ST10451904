@@ -84,6 +84,15 @@ namespace Chatbot3
         new[] { "A) To make it look nice", "B) To remove files", "C) To fix security bugs", "D) To increase file size" }, "C",
         "Correct! Updates often include patches for security vulnerabilities.")
 };
+        
+        static Dictionary<string, List<string>> nlpKeywords = new Dictionary<string, List<string>>
+{
+    { "add_task", new List<string> { "add task", "create task", "new task", "add a task", "set a task" } },
+    { "reminder", new List<string> { "remind me", "set reminder", "add reminder" } },
+    { "quiz", new List<string> { "start quiz", "cybersecurity quiz", "play quiz", "quiz" } },
+    { "phishing", new List<string> { "phishing", "phishing email", "phishing scam" } },
+    { "password", new List<string> { "password", "update password", "change password" } },
+};
 
         static void Main(string[] args)
         {
@@ -104,6 +113,17 @@ namespace Chatbot3
                 Thread.Sleep(delay);
             }
             Console.WriteLine();
+        }
+        static bool MatchesKeyword(string input, List<string> keywordVariants)
+        {
+            foreach (var keyword in keywordVariants)
+            {
+                if (input.Contains(keyword))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         static void DisplayAsciiArt()
@@ -135,7 +155,7 @@ namespace Chatbot3
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                TypeEffect("\nAsk me a question or do the followings..."+"\n manage tasks (e.g., add task, view tasks) " + "\n cybersecurity quiz" + "\n(Enter <bye>,<exit>,<quit> to exit)");
+                TypeEffect("\nAsk me a question or do the followings..." + "\n<Add task><View tasks><Delete task><Complete task> " + "\n<quiz><show actions><summary>" + "\nEnter <bye>,<exit>,<quit> to exit");
                 string input = Console.ReadLine()?.ToLower();
                 Console.ResetColor();
 
@@ -223,7 +243,7 @@ namespace Chatbot3
                     }
                     else
                     {
-                        TypeEffect("Here are your tasks:"+"\n you can delete task or complete task by the task number.");
+                        TypeEffect("Here are your tasks:" + "\n you can delete task or complete task by the task number.");
                         int index = 1;
                         foreach (var task in tasks)
                         {
@@ -270,13 +290,94 @@ namespace Chatbot3
                     foundMatch = true;
                 }
 
+                // NLP Simulated Detection for Adding Task
+                if (MatchesKeyword(input, nlpKeywords["add_task"]) || MatchesKeyword(input, nlpKeywords["reminder"]))
+                {
+                    string extractedTask = "";
 
+                    // Simple extraction: if user says "remind me to ..." or "add a task to ..."
+                    if (input.StartsWith("remind me to "))
+                    {
+                        extractedTask = input.Substring("remind me to ".Length);
+                    }
+                    else if (input.StartsWith("add a task to "))
+                    {
+                        extractedTask = input.Substring("add a task to ".Length);
+                        TypeEffect("Task added.");
+                    }
+                    else if (input.StartsWith("set reminder to "))
+                    {
+                        extractedTask = input.Substring("set reminder to ".Length);
+                    }
+
+                    // If no extraction, ask user
+                    if (string.IsNullOrWhiteSpace(extractedTask))
+                    {
+                        TypeEffect("Please enter the task title:");
+                        extractedTask = Console.ReadLine();
+                    }
+
+                    TypeEffect("Would you like to set a reminder date? (yes/no)");
+                    string remindAns = Console.ReadLine()?.ToLower();
+
+                    DateTime? reminderDate = null;
+                    if (remindAns == "yes")
+                    {
+                        TypeEffect("Enter number of days from now for the reminder:");
+                        if (int.TryParse(Console.ReadLine(), out int days))
+                        {
+                            reminderDate = DateTime.Now.AddDays(days);
+                        }
+                    }
+
+                    tasks.Add(new TaskItem { Title = extractedTask, Description = "Added via NLP command", ReminderDate = reminderDate });
+                    TypeEffect($"Task added: \"{extractedTask}\". Reminder: {(reminderDate.HasValue ? reminderDate.Value.ToShortDateString() : "None")}");
+                    foundMatch = true;
+                }
+
+                // NLP for Quiz
+                else if (MatchesKeyword(input, nlpKeywords["quiz"]))
+                {
+                    StartCybersecurityQuiz();
+                    foundMatch = true;
+                }
+
+                // NLP Example for Phishing or Password keyword advice
+                else if (MatchesKeyword(input, nlpKeywords["phishing"]) || MatchesKeyword(input, nlpKeywords["password"]))
+                {
+                    Random rnd1 = new Random();
+                    string key = MatchesKeyword(input, nlpKeywords["phishing"]) ? "phishing" : "password";
+                    string response = keywordResponses[key][rnd1.Next(keywordResponses[key].Count)];
+                    TypeEffect(response);
+                    userInterest = key;
+                    foundMatch = true;
+                }
+
+                else if (input.Contains("what have you done") || input.Contains("show actions") || input.Contains("summary"))
+                {
+                    if (tasks.Count == 0)
+                    {
+                        TypeEffect("You have no recent actions.");
+                    }
+                    else
+                    {
+                        TypeEffect("Here's a summary of recent actions:");
+                        int index = 1;
+                        foreach (var task in tasks)
+                        {
+                            string reminder = task.ReminderDate.HasValue ? $" on {task.ReminderDate.Value.ToShortDateString()}" : "(no reminder set)";
+                            TypeEffect($"{index++}. Task: \"{task.Title}\" {reminder}");
+                        }
+                    }
+                    foundMatch = true;
+                }
                 if (!foundMatch)
                 {
                     TypeEffect("I'm not sure I understand. Can you rephrase or ask something about cybersecurity?");
+
+
                 }
             }
-
 
             static void StartCybersecurityQuiz()
             {
