@@ -9,6 +9,7 @@ namespace Chatbot3
     {
         static string userName = "";
         static string userInterest = "";
+        static List<string> activityLog = new List<string>();
 
         class TaskItem
         {
@@ -147,7 +148,13 @@ namespace Chatbot3
             userName = Console.ReadLine();
             TypeEffect($"\nWelcome, {userName}! Let's explore how to stay safe online together.");
         }
-
+        static void LogActivity(string activity)
+        {
+            string entry = $"{DateTime.Now:HH:mm} - {activity}";
+            activityLog.Add(entry);
+            if (activityLog.Count > 10)
+                activityLog.RemoveAt(0); // Keep only the last 10 actions
+        }
         static void ResponseSystem()
         {
             Random rnd = new Random();
@@ -155,7 +162,7 @@ namespace Chatbot3
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                TypeEffect("\nAsk me a question or do the followings..." + "\n<Add task><View tasks><Delete task><Complete task> " + "\n<quiz><show actions><summary>" + "\nEnter <bye>,<exit>,<quit> to exit");
+                TypeEffect("\nAsk me a question: "+ "\nEnter <bye>,<exit>,<quit> to exit");
                 string input = Console.ReadLine()?.ToLower();
                 Console.ResetColor();
 
@@ -173,17 +180,7 @@ namespace Chatbot3
 
                 bool foundMatch = false;
 
-                // Keyword responses
-                foreach (var keyword in keywordResponses.Keys)
-                {
-                    if (input.Contains(keyword))
-                    {
-                        string response = keywordResponses[keyword][rnd.Next(keywordResponses[keyword].Count)];
-                        TypeEffect(response);
-                        userInterest = keyword;
-                        foundMatch = true;
-                    }
-                }
+                
 
                 // Sentiment detection
                 foreach (var sentiment in sentimentResponses.Keys)
@@ -201,13 +198,34 @@ namespace Chatbot3
                     TypeEffect($"Your name is {userName}, of course!");
                     foundMatch = true;
                 }
-
+                if (input.Contains("how are you"))
+                {
+                    TypeEffect("I’m functioning at full capacity, thanks for asking! More importantly — how can I help you stay safe online today?");
+                    foundMatch = true;
+                }
+                else if (input.Contains("your purpose") || input.Contains("why are you here") || input.Contains("what do you do"))
+                {
+                    TypeEffect("I’m your Cybersecurity Awareness Chatbot, here to help you learn how to protect yourself online. I provide guidance on password safety, phishing scams, and safe browsing. Think of me as your digital safety guide!");
+                    foundMatch = true;
+                }
+                else if (input.Contains("what can i ask") || input.Contains("help") || input.Contains("topics"))
+                {
+                    TypeEffect("You can ask me anything related to cybersecurity! \nHere are a few ideas:\n" +
+                               "- Password Safety\n" +
+                               "- Phishing Tips\n" +
+                               "- Safe Browsing\n" +
+                               "- Add Tasks and Reminders\n" +
+                               "- Take a Quiz\nJust type your question and I’ll help!");
+                    foundMatch = true;
+                }
                 // Memory-based follow-up
                 if (input.Contains("tell me more") && !string.IsNullOrWhiteSpace(userInterest))
                 {
                     TypeEffect($"{userName}, since you're interested in {userInterest}, here's a tip: Always update your apps to patch security vulnerabilities.");
                     foundMatch = true;
                 }
+
+
 
                 // Task management
                 if (input.StartsWith("add task"))
@@ -230,12 +248,13 @@ namespace Chatbot3
                             reminderDate = DateTime.Now.AddDays(days);
                         }
                     }
+                    LogActivity($"Task added: '{title}'{(reminderDate.HasValue ? $" (Reminder set for {reminderDate.Value.ToShortDateString()})" : "")}");
 
                     tasks.Add(new TaskItem { Title = title, Description = desc, ReminderDate = reminderDate });
                     TypeEffect($"Task added: \"{title}\". Reminder: {(reminderDate.HasValue ? reminderDate.Value.ToShortDateString() : "None")}");
                     foundMatch = true;
                 }
-                else if (input.Contains("view tasks"))
+                else if (input.Contains("view task"))
                 {
                     if (tasks.Count == 0)
                     {
@@ -259,6 +278,7 @@ namespace Chatbot3
                     TypeEffect("Enter the number of the task to delete:");
                     if (int.TryParse(Console.ReadLine(), out int delIndex) && delIndex <= tasks.Count && delIndex > 0)
                     {
+                        LogActivity($"Task deleted: '{tasks[delIndex - 1].Title}'");
                         TypeEffect($"Task \"{tasks[delIndex - 1].Title}\" deleted.");
                         tasks.RemoveAt(delIndex - 1);
                     }
@@ -274,15 +294,16 @@ namespace Chatbot3
                     if (int.TryParse(Console.ReadLine(), out int compIndex) && compIndex <= tasks.Count && compIndex > 0)
                     {
                         tasks[compIndex - 1].Completed = true;
+                        LogActivity($"Task marked as completed: '{tasks[compIndex - 1].Title}'");
                         TypeEffect($"Task \"{tasks[compIndex - 1].Title}\" marked as complete.");
                     }
+
                     else
                     {
                         TypeEffect("Invalid task number.");
                     }
                     foundMatch = true;
                 }
-
                 //cybersecurity quiz
                 if (input.Contains("quiz") || input.Contains("cybersecurity quiz"))
                 {
@@ -291,11 +312,10 @@ namespace Chatbot3
                 }
 
                 // NLP Simulated Detection for Adding Task
-                if (MatchesKeyword(input, nlpKeywords["add_task"]) || MatchesKeyword(input, nlpKeywords["reminder"]))
+                if (!foundMatch && (MatchesKeyword(input, nlpKeywords["add_task"]) || MatchesKeyword(input, nlpKeywords["reminder"])))
                 {
                     string extractedTask = "";
 
-                    // Simple extraction: if user says "remind me to ..." or "add a task to ..."
                     if (input.StartsWith("remind me to "))
                     {
                         extractedTask = input.Substring("remind me to ".Length);
@@ -303,40 +323,24 @@ namespace Chatbot3
                     else if (input.StartsWith("add a task to "))
                     {
                         extractedTask = input.Substring("add a task to ".Length);
-                        TypeEffect("Task added.");
                     }
                     else if (input.StartsWith("set reminder to "))
                     {
                         extractedTask = input.Substring("set reminder to ".Length);
                     }
 
-                    // If no extraction, ask user
-                    if (string.IsNullOrWhiteSpace(extractedTask))
+                    if (!string.IsNullOrWhiteSpace(extractedTask))
                     {
-                        TypeEffect("Please enter the task title:");
-                        extractedTask = Console.ReadLine();
+                        tasks.Add(new TaskItem { Title = extractedTask, Description = "NLP auto-added task", ReminderDate = null });
+                        LogActivity($"Task added via NLP: '{extractedTask}'");
+                        TypeEffect($"Task added: \"{extractedTask}\" (via NLP)");
+                        foundMatch = true;
                     }
-
-                    TypeEffect("Would you like to set a reminder date? (yes/no)");
-                    string remindAns = Console.ReadLine()?.ToLower();
-
-                    DateTime? reminderDate = null;
-                    if (remindAns == "yes")
-                    {
-                        TypeEffect("Enter number of days from now for the reminder:");
-                        if (int.TryParse(Console.ReadLine(), out int days))
-                        {
-                            reminderDate = DateTime.Now.AddDays(days);
-                        }
-                    }
-
-                    tasks.Add(new TaskItem { Title = extractedTask, Description = "Added via NLP command", ReminderDate = reminderDate });
-                    TypeEffect($"Task added: \"{extractedTask}\". Reminder: {(reminderDate.HasValue ? reminderDate.Value.ToShortDateString() : "None")}");
-                    foundMatch = true;
                 }
 
+
                 // NLP for Quiz
-                else if (MatchesKeyword(input, nlpKeywords["quiz"]))
+                else if (!foundMatch && MatchesKeyword(input, nlpKeywords["quiz"]))
                 {
                     StartCybersecurityQuiz();
                     foundMatch = true;
@@ -362,26 +366,28 @@ namespace Chatbot3
                     else
                     {
                         TypeEffect("Here's a summary of recent actions:");
-                        int index = 1;
-                        foreach (var task in tasks)
+                        foreach (string entry in activityLog)
                         {
-                            string reminder = task.ReminderDate.HasValue ? $" on {task.ReminderDate.Value.ToShortDateString()}" : "(no reminder set)";
-                            TypeEffect($"{index++}. Task: \"{task.Title}\" {reminder}");
+                            TypeEffect(entry);
                         }
+                        foundMatch = true; 
                     }
                     foundMatch = true;
                 }
+                
                 if (!foundMatch)
                 {
                     TypeEffect("I'm not sure I understand. Can you rephrase or ask something about cybersecurity?");
 
 
                 }
+                
             }
 
             static void StartCybersecurityQuiz()
             {
                 int score = 0;
+                LogActivity("Quiz started: 10 cybersecurity questions");
 
                 TypeEffect("\n~~~Let's begin the Cybersecurity Quiz!~~~");
                 Thread.Sleep(500);
